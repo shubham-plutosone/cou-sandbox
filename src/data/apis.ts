@@ -1,236 +1,169 @@
-import { ApiEndpoint } from '@/types/api';
+import { ApiEndpoint } from "@/types/api";
+import { ReferenceIdGenerator } from "../utils/RefIdGen";
+import { formatISO } from 'date-fns';
 
+const headers = {
+  accept: "*/*",
+  contentType: "application/json",
+  Authorization:
+    "Bearer U2FsdGVkX19iIlSIRnY+GVKpdruxC+uMFVsKU9RbHSXWrOlRUm8mfj26ZpADNZg9XtZNrjQ6QbPYV0/VCjX580mNe+RC6dQZH2pfWLjjoASQK37IDZ4V30g6Kw5cY5WTv1bvx2fwa/yu7zNDZnaNrTih5Nzp/iQ2nC0iftysIiI3VGjonWHO3rzJPpjeKYLIrQVdR+pBBhH+uL5wiVrQjeKx/BYgNsDPXub3yC7Mzf+HpGMCKLtcLEowhAUsaFeQqwtrNdhjuK19VJp9dhifX0vqSd20er4RSyYpJL56UCYSXXiCwHqXKkdDpHH+SWPq890ALLKDSjFsAgewQZR72Vk7nuZMkWyznqjMu2EOMky1VoGSdPQXBBXZwpEBBFy3WU+Q+gNCcrAVX9vt9fRifJThCuyXv5lXw2DNluAA8f2v8yzaGjqBfHmZoEFZBzKa52s3gK1zJY7/YVkckzwV3X5jddJhLVc/BlCtYrBeUBLqeIvouveqQD2E0Y7b9CNCTjFSlpmB/cgtYlhJDpZGcvx4w+JgqwbEstzOMmyIdx7/gpKgxiOOgPV5Xvma7ajg5/F7uQckDXXsHwoSd2DeHhWvFvYCABpK8BylCIBoFxaqdNlFDdBoeUnrMuM96xRzfOvDPEwgKnNWCCs47Vf0o1z4eNPwpJC89hn4kKT8Cpg1E3VLI3IzZpjtkLAbKKVhhmhJrozUj5wUrAFpRJEl6ARvTcEr/F8n+vjs5jWhAWvU8pZCel9hYa7yfYj5DFJ95bKbcpt6WsauKomnHFrUF5btM9vfDgydRSbteWn6u0M/Hyunm64/jjvqMS0DdumsP3EXKdmg4qqDcRAWRO8ue9eBybvseHNxzW9dJHW0YPEi+yQwebJ3GVcsJf8mqZytbP/QUDqU1dflboM8OOfTtemmR/HiMBNXYiGLCM4tvDbgfUVbFXS/U6Jo8p0NhXjAaBE0gZAvgSI0XbbMREcC7y5kneBc+h93ZkIwU9EnuOVlwzw7zlAcdE7DdpBnp6H9+4b0186mht/feGpBoT1eUgGe+c/wTaqWMPYHVYvWAthw9vF4+A+63aV9tUD02NUmxquASr1H/CPST1gMXZuWuumAgJbnKOScJJlXg1OkDqFK9DRHzmdkzY90cTnUIoZHmtH/oy4Dr1AeSc2DSwPeVkynS3ZtZxVE8nfsS567+RaU0fQbxbt5LNk25JaPecQvEkq9WS+kVCzjmJUUGYmxshv+jWbOiMG/XPeWG+p9xDNkogSqMJodlsWfTsBALXdEKcZzoAOVb+PKEsVzSaXRTgJz6WREIXQLrgtnzILia9s=",
+};
+const refId = "PLU" + ReferenceIdGenerator.generate().slice(3, 35);
+const ts = formatISO(new Date());
 export const APIs: ApiEndpoint[] = [
   {
-    id: 'jsonplaceholder-posts',
-    name: 'JSONPlaceholder - Posts',
-    description: 'Get or create blog posts',
-    method: 'GET',
-    url: 'https://jsonplaceholder.typicode.com/posts',
+    id: "get-all-billers",
+    name: "Get All Billers",
+    description:
+      "Fetch a paginated list of billers filtered by search and category",
+    method: "GET",
+    url: "https://uat-cou-switch-idfc.plutos.one/api/v1/getAllBillers",
     parameters: [
       {
-        name: 'userId',
-        type: 'number',
+        name: "page",
+        type: "number",
+        required: true,
+        description: "Page number",
+        defaultValue: 1,
+        in: "query",
+      },
+      {
+        name: "limit",
+        type: "number",
+        required: true,
+        description: "Limit per page",
+        defaultValue: 5,
+        in: "query",
+      },
+      {
+        name: "search",
+        type: "string",
         required: false,
-        description: 'Filter posts by user ID',
-        defaultValue: 1
-      }
+        description: "Search keyword",
+        defaultValue: "",
+        in: "query",
+      },
+      {
+        name: "category",
+        type: "string",
+        required: false,
+        description: "Filter by category",
+        defaultValue: "Credit Card",
+        in: "query",
+      },
     ],
     defaultPayload: {},
-    headers: { 'Content-Type': 'application/json' }
+    headers: headers,
   },
   {
-    id: 'jsonplaceholder-create-post',
-    name: 'JSONPlaceholder - Create Post',
-    description: 'Create a new blog post',
-    method: 'POST',
-    url: 'https://jsonplaceholder.typicode.com/posts',
+    id: "get-biller-by-id",
+    name: "Get Biller By ID",
+    description: "Fetch a specific biller by its ID",
+    method: "GET",
+    url: "https://uat-cou-switch-idfc.plutos.one/api/v1/biller",
     parameters: [
       {
-        name: 'title',
-        type: 'string',
+        name: "billerId",
+        type: "string",
         required: true,
-        description: 'Post title',
-        defaultValue: 'My New Post'
+        description: "Biller identifier",
+        defaultValue: "OU12LO000NATGJ",
+        in: "path",
+      },
+    ],
+    defaultPayload: {},
+    headers: headers,
+  },
+  {
+    id: "idfc-bill-fetch",
+    name: "IDFC - Bill Fetch",
+    description: "Fetch bill details for a given customer",
+    method: "POST",
+    url: "https://uat-cou-switch-idfc.plutos.one/api/v1/bill/fetch/${initiatingChannel}",
+    type: "fetch",
+    parameters: [
+      {
+        name: "refId",
+        type: "string",
+        required: true,
+        description: "Unique reference ID for the transaction",
+        defaultValue: refId,
+        in: "body",
       },
       {
-        name: 'body',
-        type: 'string',
+        name: "customerMobileNumber",
+        type: "string",
         required: true,
-        description: 'Post content',
-        defaultValue: 'This is the post content.'
+        description: "Registered mobile number of the customer",
+        defaultValue: "9120226043",
+        in: "body",
       },
       {
-        name: 'userId',
-        type: 'number',
+        name: "customerDetails",
+        type: "object",
+        required: false,
+        description: "Additional customer information",
+        defaultValue: {
+          EMAIL: "mishrashubh38@gmail.com",
+        },
+        in: "body",
+      },
+      {
+        name: "agentId",
+        type: "string",
         required: true,
-        description: 'User ID',
-        defaultValue: 1
-      }
+        description: "Agent identifier",
+        defaultValue: "IF31IF03INT524833871",
+        in: "body",
+      },
+      {
+        name: "billerId",
+        type: "string",
+        required: true,
+        description: "Biller identifier",
+        defaultValue: "OU12LO000NATGJ",
+        in: "body",
+      },
+      {
+        name: "customerParams",
+        type: "object",
+        required: true,
+        description: "Biller-specific parameters",
+        defaultValue: {
+          "Loan Number": "34567832",
+        },
+        in: "body",
+      },
+      {
+        name: "deviceDetails",
+        type: "string",
+        required: true,
+        description: "Device details for traceability",
+        defaultValue: 'INT',
+        in: "body",
+      },
+      {
+        name: "timeStamp",
+        type: "string",
+        required: true,
+        description: "Transaction timestamp in ISO format",
+        defaultValue: ts,
+        in: "body",
+      },
     ],
     defaultPayload: {
-      title: 'My New Post',
-      body: 'This is the post content.',
-      userId: 1
+      refId: refId,
+      customerDetails: {
+        EMAIL: "mishrashubh38@gmail.com",
+      },
+      customerMobileNumber: "9120226043",
+      agentId: "IF31IF03INT524833871",
+      billerId: "OU12LO000NATGJ",
+      customerParams: {
+        "Loan Number": "34567832",
+      },
+      timeStamp: ts,
     },
-    headers: { 'Content-Type': 'application/json' }
+    headers: headers,
   },
-  {
-    id: 'httpbin-get',
-    name: 'HTTPBin - GET Request',
-    description: 'Test GET request with parameters',
-    method: 'GET',
-    url: 'https://httpbin.org/get',
-    parameters: [
-      {
-        name: 'param1',
-        type: 'string',
-        required: false,
-        description: 'Test parameter 1',
-        defaultValue: 'value1'
-      },
-      {
-        name: 'param2',
-        type: 'string',
-        required: false,
-        description: 'Test parameter 2',
-        defaultValue: 'value2'
-      }
-    ],
-    defaultPayload: {},
-    headers: { 'Content-Type': 'application/json' }
-  },
-  {
-    id: 'httpbin-post',
-    name: 'HTTPBin - POST Request',
-    description: 'Test POST request with JSON data',
-    method: 'POST',
-    url: 'https://httpbin.org/post',
-    parameters: [
-      {
-        name: 'name',
-        type: 'string',
-        required: true,
-        description: 'Your name',
-        defaultValue: 'John Doe'
-      },
-      {
-        name: 'email',
-        type: 'string',
-        required: true,
-        description: 'Your email',
-        defaultValue: 'john@example.com'
-      }
-    ],
-    defaultPayload: {
-      name: 'John Doe',
-      email: 'john@example.com',
-      message: 'Hello from the API sandbox!'
-    },
-    headers: { 'Content-Type': 'application/json' }
-  },
-  {
-    id: 'reqres-users',
-    name: 'ReqRes - Get Users',
-    description: 'Get list of users from ReqRes API',
-    method: 'GET',
-    url: 'https://reqres.in/api/users',
-    parameters: [
-      {
-        name: 'page',
-        type: 'number',
-        required: false,
-        description: 'Page number',
-        defaultValue: 1
-      },
-      {
-        name: 'per_page',
-        type: 'number',
-        required: false,
-        description: 'Users per page',
-        defaultValue: 6
-      }
-    ],
-    defaultPayload: {},
-    headers: { 'Content-Type': 'application/json' }
-  },
-  {
-    id: 'reqres-create-user',
-    name: 'ReqRes - Create User',
-    description: 'Create a new user',
-    method: 'POST',
-    url: 'https://reqres.in/api/users',
-    parameters: [
-      {
-        name: 'name',
-        type: 'string',
-        required: true,
-        description: 'User name',
-        defaultValue: 'Jane Smith'
-      },
-      {
-        name: 'job',
-        type: 'string',
-        required: true,
-        description: 'User job title',
-        defaultValue: 'Developer'
-      }
-    ],
-    defaultPayload: {
-      name: 'Jane Smith',
-      job: 'Developer'
-    },
-    headers: { 'Content-Type': 'application/json' }
-  },
-  {
-    id: 'dog-api',
-    name: 'Dog API - Random Dog',
-    description: 'Get a random dog image',
-    method: 'GET',
-    url: 'https://dog.ceo/api/breeds/image/random',
-    parameters: [],
-    defaultPayload: {},
-    headers: { 'Content-Type': 'application/json' }
-  },
-  {
-    id: 'cat-fact',
-    name: 'Cat Facts API',
-    description: 'Get a random cat fact',
-    method: 'GET',
-    url: 'https://catfact.ninja/fact',
-    parameters: [
-      {
-        name: 'max_length',
-        type: 'number',
-        required: false,
-        description: 'Maximum fact length',
-        defaultValue: 140
-      }
-    ],
-    defaultPayload: {},
-    headers: { 'Content-Type': 'application/json' }
-  },
-  {
-    id: 'joke-api',
-    name: 'JokesAPI - Programming Joke',
-    description: 'Get a random programming joke',
-    method: 'GET',
-    url: 'https://v2.jokeapi.dev/joke/Programming',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: false,
-        description: 'Joke type (single or twopart)',
-        defaultValue: 'single'
-      }
-    ],
-    defaultPayload: {},
-    headers: { 'Content-Type': 'application/json' }
-  },
-  {
-    id: 'weather-api',
-    name: 'OpenWeatherMap Mock',
-    description: 'Mock weather API endpoint',
-    method: 'GET',
-    url: 'https://httpbin.org/json',
-    parameters: [
-      {
-        name: 'city',
-        type: 'string',
-        required: true,
-        description: 'City name',
-        defaultValue: 'London'
-      },
-      {
-        name: 'units',
-        type: 'string',
-        required: false,
-        description: 'Temperature units',
-        defaultValue: 'metric'
-      }
-    ],
-    defaultPayload: {},
-    headers: { 'Content-Type': 'application/json' }
-  }
 ];

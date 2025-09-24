@@ -1,15 +1,17 @@
-import { useState, useEffect } from 'react';
-import { ApiEndpoint, ApiResponse } from '@/types/api';
-import { JsonEditor } from './JsonEditor';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Play, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { ApiEndpoint, ApiResponse, ApiParameter } from "@/types/api";
+import { JsonEditor } from "./JsonEditor";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Play, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import cloneDeep from "lodash/cloneDeep";
+import axios, { AxiosRequestConfig } from "axios";
 
 interface ApiSandboxProps {
   api: ApiEndpoint;
@@ -17,46 +19,194 @@ interface ApiSandboxProps {
 
 export function ApiSandbox({ api }: ApiSandboxProps) {
   const [parameters, setParameters] = useState<Record<string, any>>({});
-  const [payload, setPayload] = useState('');
+  const [payload, setPayload] = useState("");
   const [response, setResponse] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('request');
+  const [activeTab, setActiveTab] = useState("request");
   const { toast } = useToast();
 
+  const [deviceDetailsState, setDeviceDetailsState] = useState({});
+
   useEffect(() => {
-    // Initialize parameters with default values
+    setDeviceDetailsState({
+      deviceType: "INT",
+      agentId: api.defaultPayload.agentId || "IF31IF03INT524833871",
+      deviceDeatils: {
+        MAC: "04-D9-C8-64-5E-3F",
+        IP: "122.160.88.102",
+      },
+    });
+  }, [api]);
+
+  // Chnage Parameters and Payload on API change
+  useEffect(() => {
     const defaultParams: Record<string, any> = {};
-    api.parameters.forEach(param => {
-      defaultParams[param.name] = param.defaultValue || '';
+    api.parameters.forEach((param) => {
+      defaultParams[param.name] =
+        cloneDeep(param.defaultValue) || (param.type === "object" ? {} : "");
     });
     setParameters(defaultParams);
     setPayload(JSON.stringify(api.defaultPayload, null, 2));
     setResponse(null);
-    setActiveTab('request');
+    setActiveTab("request");
   }, [api]);
 
-  const handleParameterChange = (name: string, value: any) => {
-    setParameters(prev => ({ ...prev, [name]: value }));
+  // Chnage Device Details in Payload
+  useEffect(() => {
+    const parsed = JSON.parse(payload || "{}");
+    parsed.deviceDetails = deviceDetailsState.deviceDeatils;
+    parsed.agentId = deviceDetailsState.agentId;
+    setPayload(JSON.stringify(parsed, null, 2));
+  }, [
+    deviceDetailsState.deviceType,
+    deviceDetailsState.deviceDeatils,
+    deviceDetailsState,
+    payload,
+  ]);
+
+  const updateNestedValue = (path: string[], value: any) => {
+    setParameters((prev) => {
+      const updated = cloneDeep(prev);
+      let target: any = updated;
+      for (let i = 0; i < path.length - 1; i++) {
+        target[path[i]] = target[path[i]] || {};
+        target = target[path[i]];
+      }
+      target[path[path.length - 1]] = value;
+      return updated;
+    });
+
+    // Update payload if the changed parameter is part deviceDetails
+    if (path[0] === "deviceDetails") {
+      if (["int", "INT"].includes(value)) {
+        setDeviceDetailsState({
+          deviceType: "INT",
+          agentId: "IF31IF03INT524833871",
+          deviceDeatils: {
+            MAC: "04-D9-C8-64-5E-3F",
+            IP: "122.160.88.102",
+          },
+        });
+      }
+      if (["mob", "MOB"].includes(value)) {
+        setDeviceDetailsState({
+          deviceType: "MOB",
+          agentId: "IF31IF03MOB521569135",
+          deviceDeatils: {
+            APP: "Paytm",
+            OS: "Android",
+            IP: "122.15.121.179",
+            IMEI: "332264829646596",
+          },
+        });
+      }
+      if (["agt", "AGT"].includes(value)) {
+        setDeviceDetailsState({
+          deviceType: "AGT",
+          agentId: "IF31IF03AGT515743404",
+          deviceDeatils: {
+            TERMINAL_ID: "212122",
+            MOBILE: "9120226043",
+            GEOCODE: "12.9667,77.5667",
+            POSTAL_CODE: "221303",
+          },
+        });
+      }
+    }
+  };
+
+  const renderParameter = (
+    param: ApiParameter,
+    value: any,
+    path: string[] = []
+  ): JSX.Element => {
+    const fullPath = [...path, param.name];
+
+    if (param.type === "object" && param.defaultValue) {
+      return (
+        <div key={fullPath.join(".")} className="space-y-4 border-l pl-4">
+          <Label className="font-semibold">{param.name}</Label>
+          {Object.entries(param.defaultValue).map(([childKey, childValue]) =>
+            renderParameter(
+              {
+                name: childKey,
+                type:
+                  typeof childValue === "object"
+                    ? "object"
+                    : (typeof childValue as any),
+                required: false,
+                description: `${childKey} (nested under ${param.name})`,
+                defaultValue: childValue,
+              },
+              value?.[childKey],
+              fullPath
+            )
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div key={fullPath.join(".")} className="space-y-2">
+        <Label>
+          {param.name}{" "}
+          {param.required && <span className="text-destructive">*</span>}
+          <Badge variant="outline" className="text-xs ml-2">
+            {param.type}
+          </Badge>
+        </Label>
+        <Input
+          type={param.type === "number" ? "number" : "text"}
+          value={value ?? ""}
+          onChange={(e) =>
+            updateNestedValue(
+              fullPath,
+              param.type === "number" ? Number(e.target.value) : e.target.value
+            )
+          }
+          placeholder={param.description}
+        />
+        <p className="text-xs text-muted-foreground">{param.description}</p>
+      </div>
+    );
   };
 
   const executeRequest = async () => {
     setLoading(true);
     const startTime = Date.now();
-
     try {
       let url = api.url;
-      
-      // For GET requests, append query parameters
-      if (api.method === 'GET' && Object.keys(parameters).length > 0) {
-        const searchParams = new URLSearchParams();
-        Object.entries(parameters).forEach(([key, value]) => {
-          if (value !== undefined && value !== '') {
-            searchParams.append(key, String(value));
+
+      // Change the URL if it's a fetch or payment type
+      if (["fetch", "payment"].includes(api.type)) {
+        url = url.replace(
+          "${initiatingChannel}",
+          deviceDetailsState?.deviceType?.toLowerCase()
+        );
+      }
+
+      // Replace path params
+      api.parameters
+        .filter((p) => p.in === "path")
+        .forEach((p) => {
+          const val = parameters[p.name];
+          if (val) {
+            url = url + "/" + parameters["billerId"] || p.defaultValue;
           }
         });
-        if (searchParams.toString()) {
-          url += `?${searchParams.toString()}`;
-        }
+
+      // Add query params
+      const searchParams = new URLSearchParams();
+      api.parameters
+        .filter((p) => p.in === "query")
+        .forEach((p) => {
+          const val = parameters[p.name];
+          if (val !== undefined && val !== "") {
+            searchParams.append(p.name, String(val));
+          }
+        });
+      if (searchParams.toString()) {
+        url += `?${searchParams.toString()}`;
       }
 
       const requestOptions: RequestInit = {
@@ -65,11 +215,10 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
       };
 
       // For non-GET requests, include the payload
-      if (api.method !== 'GET' && payload.trim()) {
+      if (api.method !== "GET" && payload.trim()) {
         try {
-          JSON.parse(payload); // Validate JSON
-          requestOptions.body = payload;
-        } catch (err) {
+          requestOptions.body = JSON.parse(payload);
+        } catch {
           toast({
             title: "Invalid JSON",
             description: "Please check your JSON payload for syntax errors.",
@@ -80,13 +229,24 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
         }
       }
 
-      const response = await fetch(url, requestOptions);
+      console.log(requestOptions);
+      let response;
+      if (api.method === "GET") {
+        response = await axios.get(url, {
+          headers: requestOptions.headers,
+        } as AxiosRequestConfig);
+      } else {
+        response = await axios.post(url, requestOptions.body, {
+          headers: requestOptions.headers,
+        } as AxiosRequestConfig);
+      }
+      console.log(response);
       const duration = Date.now() - startTime;
-      
+
       let data;
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = (await response?.data) || {};
       } else {
         data = await response.text();
       }
@@ -100,9 +260,9 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
       };
 
       setResponse(apiResponse);
-      setActiveTab('response');
+      setActiveTab("response");
 
-      if (response.ok) {
+      if (apiResponse.status === 200) {
         toast({
           title: "Request successful",
           description: `${api.method} request completed in ${duration}ms`,
@@ -115,20 +275,25 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
         });
       }
     } catch (error) {
+      const err = error?.response?.data;
+      const errors = error?.response?.data?.payload?.errors || [];
+      console.log(errors, errors[0]?.reason, typeof errors[0]?.reason);
       const duration = Date.now() - startTime;
       const apiResponse: ApiResponse = {
-        status: 0,
-        statusText: 'Network Error',
-        data: { error: (error as Error).message },
+        status: err?.code || 0,
+        statusText: err?.message || "Network Error",
+        data: err,
         duration,
         timestamp: new Date().toISOString(),
       };
       setResponse(apiResponse);
-      setActiveTab('response');
-
+      setActiveTab("response");
       toast({
-        title: "Network error",
-        description: (error as Error).message,
+        title: err?.message || "Network error",
+        description:
+          typeof errors[0]?.reason === "object"
+            ? errors[0]?.reason[Object.keys(errors[0]?.reason)[0]]
+            : errors[0]?.reason || err?.message || "Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -137,25 +302,30 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
   };
 
   const getStatusColor = (status: number) => {
-    if (status === 0) return 'bg-red-500/10 text-red-700 dark:text-red-400';
-    if (status >= 200 && status < 300) return 'bg-green-500/10 text-green-700 dark:text-green-400';
-    if (status >= 400) return 'bg-red-500/10 text-red-700 dark:text-red-400';
-    return 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400';
+    if (status === 0) return "bg-red-500/10 text-red-700 dark:text-red-400";
+    if (status >= 200 && status < 300)
+      return "bg-green-500/10 text-green-700 dark:text-green-400";
+    if (status >= 400) return "bg-red-500/10 text-red-700 dark:text-red-400";
+    return "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400";
   };
 
   const getMethodColor = (method: string) => {
     switch (method) {
-      case 'GET': return 'bg-green-500/10 text-green-700 dark:text-green-400';
-      case 'POST': return 'bg-blue-500/10 text-blue-700 dark:text-blue-400';
-      case 'PUT': return 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400';
-      case 'DELETE': return 'bg-red-500/10 text-red-700 dark:text-red-400';
-      default: return 'bg-muted text-muted-foreground';
+      case "GET":
+        return "bg-green-500/10 text-green-700 dark:text-green-400";
+      case "POST":
+        return "bg-blue-500/10 text-blue-700 dark:text-blue-400";
+      case "PUT":
+        return "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400";
+      case "DELETE":
+        return "bg-red-500/10 text-red-700 dark:text-red-400";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
   return (
     <div className="flex-1 p-6 space-y-6">
-      {/* API Header */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -166,51 +336,39 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
           </div>
           <p className="text-muted-foreground">{api.description}</p>
           <div className="text-sm font-mono bg-muted/50 p-2 rounded border">
-            {api.url}
+            {api.url.replace(
+              "${initiatingChannel}",
+              deviceDetailsState?.deviceType?.toLowerCase()
+            )}
           </div>
         </CardHeader>
       </Card>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
         <TabsList>
           <TabsTrigger value="request">Request</TabsTrigger>
           <TabsTrigger value="response">Response</TabsTrigger>
         </TabsList>
 
         <TabsContent value="request" className="space-y-6">
-          {/* Parameters */}
           {api.parameters.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Parameters</CardTitle>
+                <CardTitle className="text-lg">{api.method === "GET" ? "Query Parameters" : "Request Body"}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {api.parameters.map((param) => (
-                  <div key={param.name} className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      {param.name}
-                      {param.required && <span className="text-destructive">*</span>}
-                      <Badge variant="outline" className="text-xs">
-                        {param.type}
-                      </Badge>
-                    </Label>
-                    <Input
-                      type={param.type === 'number' ? 'number' : 'text'}
-                      value={parameters[param.name] || ''}
-                      onChange={(e) => handleParameterChange(param.name, 
-                        param.type === 'number' ? Number(e.target.value) : e.target.value
-                      )}
-                      placeholder={param.description}
-                    />
-                    <p className="text-xs text-muted-foreground">{param.description}</p>
-                  </div>
-                ))}
+                {api.parameters.map((param) =>
+                  renderParameter(param, parameters[param.name])
+                )}
               </CardContent>
             </Card>
           )}
 
-          {/* JSON Payload */}
-          {api.method !== 'GET' && (
+          {api.method !== "GET" && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Request Body</CardTitle>
@@ -220,15 +378,15 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
                   value={payload}
                   onChange={setPayload}
                   placeholder="Enter JSON payload..."
+                  readonly={true}
                 />
               </CardContent>
             </Card>
           )}
 
-          {/* Execute Button */}
           <div className="flex justify-center">
-            <Button 
-              onClick={executeRequest} 
+            <Button
+              onClick={executeRequest}
               disabled={loading}
               size="lg"
               className="gap-2"
@@ -238,7 +396,7 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
               ) : (
                 <Play className="h-4 w-4" />
               )}
-              {loading ? 'Executing...' : 'Execute Request'}
+              {loading ? "Executing..." : "Execute Request"}
             </Button>
           </div>
         </TabsContent>
@@ -263,7 +421,7 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
                     {response.duration}ms
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <Badge className={getStatusColor(response.status)}>
                     {response.status} {response.statusText}
@@ -273,14 +431,14 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
                   </span>
                 </div>
               </CardHeader>
-              
+
               <Separator />
-              
+
               <CardContent className="pt-6">
                 <div className="space-y-2">
                   <Label>Response Body</Label>
                   <div className="bg-muted/50 rounded p-4 font-mono text-sm overflow-auto max-h-96">
-                    <pre>{JSON.stringify(response.data, null, 2)}</pre>
+                    <pre>{JSON.stringify(response?.data, null, 2)}</pre>
                   </div>
                 </div>
               </CardContent>

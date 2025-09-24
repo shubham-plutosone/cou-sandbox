@@ -6,6 +6,7 @@ import { APIs } from '@/data/apis';
 import { ApiEndpoint } from '@/types/api';
 import { Card } from '@/components/ui/card';
 import { Code, Zap } from 'lucide-react';
+import { ApiTopbar } from './ApiTopbar';
 
 export function ApiSandboxApp() {
   const [selectedApi, setSelectedApi] = useState<ApiEndpoint | null>(APIs[0]);
@@ -15,13 +16,13 @@ export function ApiSandboxApp() {
       <div className="min-h-screen flex w-full bg-background">
         {/* Header */}
         <div className="fixed top-0 left-0 right-0 h-14 bg-background border-b flex items-center px-4 z-50">
-          <SidebarTrigger className="mr-4" />
+          {/* <SidebarTrigger className="mr-4" /> */}
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 text-primary">
               <Zap className="h-6 w-6" />
               <Code className="h-5 w-5" />
             </div>
-            <h1 className="text-xl font-bold">API Sandbox</h1>
+            <h1 className="text-xl font-bold">BBPS COU API Sandbox</h1>
           </div>
           <div className="ml-auto text-sm text-muted-foreground">
             Test and explore API endpoints
@@ -29,8 +30,8 @@ export function ApiSandboxApp() {
         </div>
 
         {/* Main Layout */}
-        <div className="flex w-full pt-14">
-          <ApiSidebar 
+        <div className="flex flex-col w-full pt-14">
+          <ApiTopbar
             selectedApi={selectedApi} 
             onSelectApi={setSelectedApi} 
           />

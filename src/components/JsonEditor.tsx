@@ -10,9 +10,10 @@ interface JsonEditorProps {
   label?: string;
   placeholder?: string;
   className?: string;
+  readonly?: boolean;
 }
 
-export const JsonEditor = ({ value, onChange, label, placeholder, className }: JsonEditorProps) => {
+export const JsonEditor = ({ value, onChange, label, placeholder, className, readonly }: JsonEditorProps) => {
   const [isValid, setIsValid] = useState(true);
   const [error, setError] = useState<string>('');
 
@@ -67,6 +68,7 @@ export const JsonEditor = ({ value, onChange, label, placeholder, className }: J
           onChange={(e) => handleChange(e.target.value)}
           placeholder={placeholder}
           className={`font-mono text-sm min-h-[200px] ${!isValid ? 'border-destructive' : ''}`}
+          readOnly={readonly}
         />
         
         {isValid && value.trim() && (
