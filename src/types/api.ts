@@ -5,6 +5,7 @@ export interface ApiParameter {
   description: string;
   defaultValue?: any;
   in?: 'query' | 'path' | 'body' | 'header';
+  editable?: boolean;
 }
 
 export interface ApiEndpoint {
@@ -13,7 +14,7 @@ export interface ApiEndpoint {
   description: string;
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   url: string;
-  type?: 'fetch' | 'payment' | 'other';
+  type?: 'fetch' | 'payment' | 'validate' | 'other';
   parameters: ApiParameter[];
   defaultPayload: Record<string, any>;
   headers?: Record<string, string>;

@@ -12,6 +12,8 @@ import { Play, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import cloneDeep from "lodash/cloneDeep";
 import axios, { AxiosRequestConfig } from "axios";
+import { formatISO } from "date-fns";
+import { ReferenceIdGenerator } from "@/utils/RefIdGen";
 
 interface ApiSandboxProps {
   api: ApiEndpoint;
@@ -29,9 +31,11 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
 
   useEffect(() => {
     setDeviceDetailsState({
+      refId: "PLU" + ReferenceIdGenerator.generate().slice(3, 35),
+      timeStamp: formatISO(new Date()),
       deviceType: "INT",
       agentId: api.defaultPayload.agentId || "IF31IF03INT524833871",
-      deviceDeatils: {
+      deviceDetails: {
         MAC: "04-D9-C8-64-5E-3F",
         IP: "122.160.88.102",
       },
@@ -51,16 +55,35 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
     setActiveTab("request");
   }, [api]);
 
-  // Chnage Device Details in Payload
+  // On Change in Initating Channel, Change the Payload on form & JSON both
   useEffect(() => {
     const parsed = JSON.parse(payload || "{}");
-    parsed.deviceDetails = deviceDetailsState.deviceDeatils;
-    parsed.agentId = deviceDetailsState.agentId;
-    setPayload(JSON.stringify(parsed, null, 2));
+    const { refId, timeStamp, deviceDetails, agentId, ...rest } = parsed;
+    const newPayload = {
+      refId: deviceDetailsState.refId,
+      timeStamp: deviceDetailsState.timeStamp,
+      agentId: deviceDetailsState.agentId,
+      deviceDetails: deviceDetailsState.deviceDetails,
+      ...rest,
+    };
+    // Set JSON Payload
+    setPayload(JSON.stringify(newPayload, null, 2));
+
+    // Set Form Payload
+    setParameters((prev) => {
+      return {
+        ...prev,
+        refId: deviceDetailsState.refId,
+        timeStamp: deviceDetailsState.timeStamp,
+        agentId: deviceDetailsState.agentId,
+      };
+    });
   }, [
+    deviceDetailsState.refId,
+    deviceDetailsState.timeStamp,
     deviceDetailsState.deviceType,
-    deviceDetailsState.deviceDeatils,
-    deviceDetailsState,
+    deviceDetailsState.deviceDetails,
+    deviceDetailsState.agentId,
     payload,
   ]);
 
@@ -78,11 +101,15 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
 
     // Update payload if the changed parameter is part deviceDetails
     if (path[0] === "deviceDetails") {
+      const refId = "PLU" + ReferenceIdGenerator.generate().slice(3, 35);
+      const timeStamp = formatISO(new Date());
       if (["int", "INT"].includes(value)) {
         setDeviceDetailsState({
+          refId,
+          timeStamp,
           deviceType: "INT",
           agentId: "IF31IF03INT524833871",
-          deviceDeatils: {
+          deviceDetails: {
             MAC: "04-D9-C8-64-5E-3F",
             IP: "122.160.88.102",
           },
@@ -90,9 +117,11 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
       }
       if (["mob", "MOB"].includes(value)) {
         setDeviceDetailsState({
+          refId,
+          timeStamp,
           deviceType: "MOB",
           agentId: "IF31IF03MOB521569135",
-          deviceDeatils: {
+          deviceDetails: {
             APP: "Paytm",
             OS: "Android",
             IP: "122.15.121.179",
@@ -102,9 +131,11 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
       }
       if (["agt", "AGT"].includes(value)) {
         setDeviceDetailsState({
+          refId,
+          timeStamp,
           deviceType: "AGT",
           agentId: "IF31IF03AGT515743404",
-          deviceDeatils: {
+          deviceDetails: {
             TERMINAL_ID: "212122",
             MOBILE: "9120226043",
             GEOCODE: "12.9667,77.5667",
@@ -137,6 +168,7 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
                 required: false,
                 description: `${childKey} (nested under ${param.name})`,
                 defaultValue: childValue,
+                editable: true,
               },
               value?.[childKey],
               fullPath
@@ -165,6 +197,7 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
             )
           }
           placeholder={param.description}
+          disabled={!param.editable}
         />
         <p className="text-xs text-muted-foreground">{param.description}</p>
       </div>
@@ -176,6 +209,9 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
     const startTime = Date.now();
     try {
       let url = api.url;
+      api.headers.Authorization = `Bearer ${localStorage.getItem(
+        `access_token_${deviceDetailsState?.deviceType?.toLowerCase()}`
+      )}`;
 
       // Change the URL if it's a fetch or payment type
       if (["fetch", "payment"].includes(api.type)) {
@@ -260,7 +296,7 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
       };
 
       setResponse(apiResponse);
-      setActiveTab("response");
+      // setActiveTab("response"); // Commented to avoid auto switch to response tab
 
       if (apiResponse.status === 200) {
         toast({
@@ -287,7 +323,7 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
         timestamp: new Date().toISOString(),
       };
       setResponse(apiResponse);
-      setActiveTab("response");
+      // setActiveTab("response"); // Commented to avoid auto switch to response tab
       toast({
         title: err?.message || "Network error",
         description:
@@ -298,6 +334,7 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
       });
     } finally {
       setLoading(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -336,10 +373,7 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
           </div>
           <p className="text-muted-foreground">{api.description}</p>
           <div className="text-sm font-mono bg-muted/50 p-2 rounded border">
-            {api.url.replace(
-              "${initiatingChannel}",
-              deviceDetailsState?.deviceType?.toLowerCase()
-            )}
+            {api.url}
           </div>
         </CardHeader>
       </Card>
@@ -351,109 +385,119 @@ export function ApiSandbox({ api }: ApiSandboxProps) {
       >
         <TabsList>
           <TabsTrigger value="request">Request</TabsTrigger>
-          <TabsTrigger value="response">Response</TabsTrigger>
+          {/* <TabsTrigger value="response">Response</TabsTrigger> */}
         </TabsList>
 
-        <TabsContent value="request" className="space-y-6">
-          {api.parameters.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{api.method === "GET" ? "Query Parameters" : "Request Body"}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {api.parameters.map((param) =>
-                  renderParameter(param, parameters[param.name])
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {api.method !== "GET" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Request Body</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <JsonEditor
-                  value={payload}
-                  onChange={setPayload}
-                  placeholder="Enter JSON payload..."
-                  readonly={true}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="flex justify-center">
-            <Button
-              onClick={executeRequest}
-              disabled={loading}
-              size="lg"
-              className="gap-2"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4" />
-              )}
-              {loading ? "Executing..." : "Execute Request"}
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="response">
-          {response ? (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    Response
-                    {response.status === 0 ? (
-                      <XCircle className="h-5 w-5 text-red-500" />
-                    ) : response.status >= 200 && response.status < 300 ? (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-500" />
+        <div className="flex gap-5">
+          <div className="w-full">
+            <TabsContent value="request" className="space-y-6">
+              {api.parameters.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      {api.method === "GET"
+                        ? "Query Parameters"
+                        : "Request Body"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {api.parameters.map((param) =>
+                      renderParameter(param, parameters[param.name])
                     )}
-                  </CardTitle>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    {response.duration}ms
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
+              )}
 
-                <div className="flex items-center gap-2">
-                  <Badge className={getStatusColor(response.status)}>
-                    {response.status} {response.statusText}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {new Date(response.timestamp).toLocaleString()}
-                  </span>
-                </div>
-              </CardHeader>
+              {api.method !== "GET" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Request Body</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <JsonEditor
+                      value={payload}
+                      onChange={setPayload}
+                      placeholder="Enter JSON payload..."
+                      readonly={true}
+                    />
+                  </CardContent>
+                </Card>
+              )}
 
-              <Separator />
+              <div className="flex justify-center">
+                <Button
+                  onClick={executeRequest}
+                  disabled={loading}
+                  size="lg"
+                  className="gap-2"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                  {loading ? "Executing..." : "Execute Request"}
+                </Button>
+              </div>
+            </TabsContent>
+          </div>
+          <div className="w-full">
+            {/* Display the response */}
+            <TabsContent value="request">
+              {response ? (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        Response
+                        {response.status === 0 ? (
+                          <XCircle className="h-5 w-5 text-red-500" />
+                        ) : response.status >= 200 && response.status < 300 ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-500" />
+                        )}
+                      </CardTitle>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        {response.duration}ms
+                      </div>
+                    </div>
 
-              <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <Label>Response Body</Label>
-                  <div className="bg-muted/50 rounded p-4 font-mono text-sm overflow-auto max-h-96">
-                    <pre>{JSON.stringify(response?.data, null, 2)}</pre>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center py-8 text-muted-foreground">
-                  <Play className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Execute a request to see the response</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+                    <div className="flex items-center gap-2">
+                      <Badge className={getStatusColor(response.status)}>
+                        {response.status} {response.statusText}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(response.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                  </CardHeader>
+
+                  <Separator />
+
+                  <CardContent className="pt-6">
+                    <div className="space-y-2">
+                      <Label>Response Body</Label>
+                      <div className="bg-muted/50 rounded p-4 font-mono text-sm overflow-auto max-h-96">
+                        <pre>{JSON.stringify(response?.data, null, 2)}</pre>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Play className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>Execute a request to see the response</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </div>
+        </div>
       </Tabs>
     </div>
   );

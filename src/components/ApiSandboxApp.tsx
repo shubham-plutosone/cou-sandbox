@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { ApiSidebar } from './ApiSidebar';
-import { ApiSandbox } from './ApiSandbox';
 import { APIs } from '@/data/apis';
 import { ApiEndpoint } from '@/types/api';
 import { Card } from '@/components/ui/card';
 import { Code, Zap } from 'lucide-react';
 import { ApiTopbar } from './ApiTopbar';
+import { ApiSandbox_1 } from './ApiSandbox_1';
 
 export function ApiSandboxApp() {
   const [selectedApi, setSelectedApi] = useState<ApiEndpoint | null>(APIs[0]);
@@ -38,7 +38,7 @@ export function ApiSandboxApp() {
           
           <main className="flex-1 min-h-screen">
             {selectedApi ? (
-              <ApiSandbox api={selectedApi} />
+              <ApiSandbox_1 api={selectedApi} />
             ) : (
               <div className="flex items-center justify-center h-full p-6">
                 <Card className="p-8 text-center max-w-md">

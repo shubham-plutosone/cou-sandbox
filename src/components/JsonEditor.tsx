@@ -67,7 +67,7 @@ export const JsonEditor = ({ value, onChange, label, placeholder, className, rea
           value={value}
           onChange={(e) => handleChange(e.target.value)}
           placeholder={placeholder}
-          className={`font-mono text-sm min-h-[200px] ${!isValid ? 'border-destructive' : ''}`}
+          className={`font-mono text-sm min-h-[400px] ${!isValid ? 'border-destructive' : ''}`}
           readOnly={readonly}
         />
         

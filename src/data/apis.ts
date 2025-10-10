@@ -1,6 +1,6 @@
 import { ApiEndpoint } from "@/types/api";
 import { ReferenceIdGenerator } from "../utils/RefIdGen";
-import { formatISO } from 'date-fns';
+import { formatISO } from "date-fns";
 
 const headers = {
   accept: "*/*",
@@ -26,6 +26,7 @@ export const APIs: ApiEndpoint[] = [
         description: "Page number",
         defaultValue: 1,
         in: "query",
+        editable: true,
       },
       {
         name: "limit",
@@ -34,6 +35,7 @@ export const APIs: ApiEndpoint[] = [
         description: "Limit per page",
         defaultValue: 5,
         in: "query",
+        editable: true,
       },
       {
         name: "search",
@@ -42,6 +44,7 @@ export const APIs: ApiEndpoint[] = [
         description: "Search keyword",
         defaultValue: "",
         in: "query",
+        editable: true,
       },
       {
         name: "category",
@@ -50,6 +53,7 @@ export const APIs: ApiEndpoint[] = [
         description: "Filter by category",
         defaultValue: "Credit Card",
         in: "query",
+        editable: true,
       },
     ],
     defaultPayload: {},
@@ -69,6 +73,7 @@ export const APIs: ApiEndpoint[] = [
         description: "Biller identifier",
         defaultValue: "OU12LO000NATGJ",
         in: "path",
+        editable: true,
       },
     ],
     defaultPayload: {},
@@ -77,11 +82,33 @@ export const APIs: ApiEndpoint[] = [
   {
     id: "idfc-bill-fetch",
     name: "IDFC - Bill Fetch",
-    description: "Fetch bill details for a given customer",
+    description:
+      "This API will help you to fetch the bill details of customer & the payload like device details, agent id, will be depend on the agent ['MOB', 'INT', 'AGT'] who is making the request.",
     method: "POST",
     url: "https://uat-cou-switch-idfc.plutos.one/api/v1/bill/fetch/${initiatingChannel}",
     type: "fetch",
     parameters: [
+      {
+        name: "deviceDetails",
+        type: "object",
+        required: true,
+        description: "Device information",
+        defaultValue: {
+          MAC: "04-D9-C8-64-5E-3F",
+          IP: "122.160.88.102",
+        },
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "agentId",
+        type: "string",
+        required: true,
+        description: "Agent identifier",
+        defaultValue: "IF31IF03INT524833871",
+        in: "body",
+        editable: true,
+      },
       {
         name: "refId",
         type: "string",
@@ -89,6 +116,16 @@ export const APIs: ApiEndpoint[] = [
         description: "Unique reference ID for the transaction",
         defaultValue: refId,
         in: "body",
+        editable: true,
+      },
+      {
+        name: "timeStamp",
+        type: "string",
+        required: true,
+        description: "Transaction timestamp in ISO format",
+        defaultValue: ts,
+        in: "body",
+        editable: true,
       },
       {
         name: "customerMobileNumber",
@@ -97,6 +134,7 @@ export const APIs: ApiEndpoint[] = [
         description: "Registered mobile number of the customer",
         defaultValue: "9120226043",
         in: "body",
+        editable: true,
       },
       {
         name: "customerDetails",
@@ -107,14 +145,7 @@ export const APIs: ApiEndpoint[] = [
           EMAIL: "mishrashubh38@gmail.com",
         },
         in: "body",
-      },
-      {
-        name: "agentId",
-        type: "string",
-        required: true,
-        description: "Agent identifier",
-        defaultValue: "IF31IF03INT524833871",
-        in: "body",
+        editable: true,
       },
       {
         name: "billerId",
@@ -123,6 +154,7 @@ export const APIs: ApiEndpoint[] = [
         description: "Biller identifier",
         defaultValue: "OU12LO000NATGJ",
         in: "body",
+        editable: true,
       },
       {
         name: "customerParams",
@@ -133,22 +165,7 @@ export const APIs: ApiEndpoint[] = [
           "Loan Number": "34567832",
         },
         in: "body",
-      },
-      {
-        name: "deviceDetails",
-        type: "string",
-        required: true,
-        description: "Device details for traceability",
-        defaultValue: 'INT',
-        in: "body",
-      },
-      {
-        name: "timeStamp",
-        type: "string",
-        required: true,
-        description: "Transaction timestamp in ISO format",
-        defaultValue: ts,
-        in: "body",
+        editable: true,
       },
     ],
     defaultPayload: {
@@ -165,5 +182,219 @@ export const APIs: ApiEndpoint[] = [
       timeStamp: ts,
     },
     headers: headers,
+  },
+  {
+    id: "idfc-bill-validate",
+    name: "IDFC - Bill Validate",
+    description:
+      "This API will help you to validate biller-specific customer parameters before initiating a payment. The payload typically includes refId, agentId, billerId, and customer parameters.",
+    method: "POST",
+    url: "https://uat-cou-switch-idfc.plutos.one/api/v1/bill/validate",
+    type: "validate",
+    parameters: [
+      {
+        name: "refId",
+        type: "string",
+        required: true,
+        description: "Unique reference ID for the transaction",
+        defaultValue: "PLUCHAA10AAAAAAA1111111111650651556",
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "agentId",
+        type: "string",
+        required: true,
+        description: "Agent identifier",
+        defaultValue: "IF31IF03INT524833871",
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "billerId",
+        type: "string",
+        required: true,
+        description: "Biller identifier",
+        defaultValue: "OU12LO000NATGJ",
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "customerParams",
+        type: "object",
+        required: true,
+        description: "Biller-specific parameters used for validation",
+        defaultValue: {
+          "Loan Number": "34567832",
+        },
+        in: "body",
+        editable: true,
+      },
+    ],
+    defaultPayload: {
+      refId: refId,
+      agentId: "IF31IF03INT524833871",
+      billerId: "EVRE00000NAT3X",
+      customerParams: {
+        "Mobile Number": "8167665456",
+      },
+    },
+    headers,
+  },
+  {
+    id: "idfc-bill-payment",
+    name: "IDFC - Bill Payment",
+    description:
+      "This API will help you initiate the bill payment transaction. The payload includes customer details, payment information, and device details. Mandatory parameters depend on the biller and payment method.",
+    method: "POST",
+    url: "https://uat-cou-switch-idfc.plutos.one/api/v1/bill/payment/${initiatingChannel}",
+    type: "payment",
+    parameters: [
+      {
+        name: "refId",
+        type: "string",
+        required: true,
+        description: "Unique reference ID for the transaction",
+        defaultValue: "PLUCHAA10AAAAAAA1111111111650651556",
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "agentId",
+        type: "string",
+        required: true,
+        description: "Agent identifier",
+        defaultValue: "IF31IF03INT524833871",
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "billerId",
+        type: "string",
+        required: true,
+        description: "Biller identifier",
+        defaultValue: "OU12LO000NATGJ",
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "customerParams",
+        type: "object",
+        required: true,
+        description: "Biller-specific parameters",
+        defaultValue: {
+          "Loan Number": "34567832",
+        },
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "deviceDetails",
+        type: "object",
+        required: true,
+        description: "Device information",
+        defaultValue: {
+          MAC: "04-D9-C8-64-5E-3F",
+          IP: "122.160.88.102",
+        },
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "customerMobile",
+        type: "string",
+        required: true,
+        description: "Customer mobile number",
+        defaultValue: "8167665456",
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "isQuickPay",
+        type: "string",
+        required: false,
+        description: "Quick pay flag (Yes/No)",
+        defaultValue: "No",
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "amount",
+        type: "object",
+        required: true,
+        description: "Payment amount details",
+        defaultValue: {
+          amount: "20000",
+        },
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "paymentInformation",
+        type: "object",
+        required: true,
+        description: "Payment details such as UPI VPA, Account info etc.",
+        defaultValue: {
+          VPA: "9120226989@ybl",
+        },
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "txn",
+        type: "object",
+        required: true,
+        description: "Transaction details including timestamp & reference",
+        defaultValue: {
+          ts: "2025-09-26T16:49:00+05:30",
+          paymentRefId: "834DSKIAK6T87DVB",
+        },
+        in: "body",
+        editable: true,
+      },
+      {
+        name: "paymentMethod",
+        type: "object",
+        required: true,
+        description: "Payment method details",
+        defaultValue: {
+          splitPay: "No",
+          OFFUSPay: "Yes",
+          paymentMode: "UPI",
+        },
+        in: "body",
+        editable: true,
+      },
+    ],
+    defaultPayload: {
+      refId: "PLUCHAA10AAAAAAA1111111111650651556",
+      agentId: "IF31IF03INT524833871",
+      billerId: "OU12LO000NATGJ",
+      customerParams: {
+        "Loan Number": "34567832",
+      },
+      deviceDetails: {
+        MAC: "04-D9-C8-64-5E-3F",
+        IP: "122.160.88.102",
+      },
+      customerMobile: "9120226043",
+      isQuickPay: "No",
+      amount: {
+        amount: "0",
+      },
+      paymentInformation: {
+        "Payment Account Info": "9120226043@ybl",
+      },
+      txn: {
+        ts: ts,
+        paymentRefId: "834DSKIAK6T87DVB",
+      },
+      paymentMethod: {
+        splitPay: "No",
+        OFFUSPay: "Yes",
+        paymentMode: "UPI",
+      },
+    },
+    headers,
   },
 ];
