@@ -170,16 +170,20 @@ export const APIs: ApiEndpoint[] = [
     ],
     defaultPayload: {
       refId: refId,
-      customerDetails: {
-        EMAIL: "mishrashubh38@gmail.com",
-      },
       customerMobileNumber: "9120226043",
       agentId: "IF31IF03INT524833871",
       billerId: "OU12LO000NATGJ",
+      timeStamp: ts,
       customerParams: {
         "Loan Number": "34567832",
       },
-      timeStamp: ts,
+      deviceDetails: {
+        MAC: "04-D9-C8-64-5E-3F",
+        IP: "122.160.88.102",
+      },
+      customerDetails: {
+        EMAIL: "mishrashubh38@gmail.com",
+      },
     },
     headers: headers,
   },
@@ -335,7 +339,7 @@ export const APIs: ApiEndpoint[] = [
         required: true,
         description: "Payment details such as UPI VPA, Account info etc.",
         defaultValue: {
-          VPA: "9120226989@ybl",
+          "Payment Account Info": "9120226989@ybl",
         },
         in: "body",
         editable: true,
@@ -370,17 +374,21 @@ export const APIs: ApiEndpoint[] = [
       refId: "PLUCHAA10AAAAAAA1111111111650651556",
       agentId: "IF31IF03INT524833871",
       billerId: "OU12LO000NATGJ",
+      customerMobile: "9120226043",
+      isQuickPay: "No",
       customerParams: {
         "Loan Number": "34567832",
+      },
+      amount: {
+        amount: "0",
       },
       deviceDetails: {
         MAC: "04-D9-C8-64-5E-3F",
         IP: "122.160.88.102",
       },
-      customerMobile: "9120226043",
-      isQuickPay: "No",
-      amount: {
-        amount: "0",
+      customerDetails: {
+        EMAIL: "mishrashubh38@gmail.com",
+        "Remitter Name": "Shubham Mishra",
       },
       paymentInformation: {
         "Payment Account Info": "9120226043@ybl",

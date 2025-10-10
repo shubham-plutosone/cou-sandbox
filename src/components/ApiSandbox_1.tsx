@@ -12,8 +12,9 @@ import { Play, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import cloneDeep from "lodash/cloneDeep";
 import axios, { AxiosRequestConfig } from "axios";
-import { formatISO, set } from "date-fns";
+import { formatISO } from "date-fns";
 import { ReferenceIdGenerator } from "@/utils/RefIdGen";
+import { FaMinus, FaPlus } from "react-icons/fa";
 
 interface ApiSandboxProps {
   api: ApiEndpoint;
@@ -31,24 +32,8 @@ export function ApiSandbox_1({ api }: ApiSandboxProps) {
   const [agentType, setAgentType] = useState("int");
 
   // Use refs to prevent circular updates
-  const isUpdatingFromForm = useRef(false);
   const isUpdatingFromJson = useRef(false);
   const isUpdatingFromDevice = useRef(false);
-
-  const [deviceDetailsState, setDeviceDetailsState] = useState({});
-
-  // Initialize device details
-  useEffect(() => {
-    setDeviceDetailsState({
-      refId: "PLU" + ReferenceIdGenerator.generate().slice(3, 35),
-      timeStamp: formatISO(new Date()),
-      agentId: api.defaultPayload.agentId || "IF31IF03INT524833871",
-      deviceDetails: {
-        MAC: "04-D9-C8-64-5E-3F",
-        IP: "122.160.88.102",
-      },
-    });
-  }, [api]);
 
   // Initialize parameters and payload on API change
   useEffect(() => {
@@ -75,33 +60,6 @@ export function ApiSandbox_1({ api }: ApiSandboxProps) {
     setActiveTab("request");
     setInputMode("form");
   }, [api]);
-
-  // Update payload when deviceDetailsState changes (only on agent type change, not on every deviceDetailsState change)
-  useEffect(() => {
-    if (!deviceDetailsState.refId) return;
-
-    isUpdatingFromDevice.current = true;
-    try {
-      const data = {
-        ...prev,
-        refId: prev.refId || deviceDetailsState.refId,
-        timeStamp: prev.timeStamp || deviceDetailsState.timeStamp,
-        agentId: prev.agentId || deviceDetailsState.agentId,
-        deviceDetails: prev.deviceDetails || {
-          ...deviceDetailsState.deviceDetails,
-        }
-      }
-      if (!["payment", "fetch"].includes(api.type)){
-        delete data.deviceDetails;
-      }
-      // Only update when agent type changes, preserve existing values if they exist
-      setParameters((prev) => (data));
-    } catch (error) {
-      console.error("Error updating from deviceDetailsState:", error);
-    } finally {
-      isUpdatingFromDevice.current = false;
-    }
-  }, [agentType]); // Only trigger on agentType change
 
   // Sync form changes to JSON payload
   const syncFormToJson = useCallback(() => {
@@ -271,18 +229,56 @@ export function ApiSandbox_1({ api }: ApiSandboxProps) {
     }
 
     if (Object.keys(deviceConfig).length > 0) {
-      setDeviceDetailsState(deviceConfig);
       // Update parameters directly with new values
-      setParameters((prev) => ({
-        ...prev,
-        refId: deviceConfig.refId,
-        timeStamp: deviceConfig.timeStamp,
-        agentId: deviceConfig.agentId,
-        deviceDetails: { ...deviceConfig.deviceDetails },
-      }));
+      if (api.type === "fetch") {
+        setParameters((prev) => ({
+          ...prev,
+          refId: deviceConfig.refId,
+          timeStamp: deviceConfig.timeStamp,
+          agentId: deviceConfig.agentId,
+          deviceDetails: { ...deviceConfig.deviceDetails },
+        }));
+      }
+      if (api.type === "payment") {
+        setParameters((prev) => ({
+          ...prev,
+          refId: deviceConfig.refId,
+          customerDetails: {
+            EMAIL: "mishrashubh38@gmail.com",
+            "Remitter Name": "Shubham Mishra",
+          },
+          txn: {
+            ts: deviceConfig.timeStamp,
+            paymentRefId: Math.random()
+              .toString(36)
+              .substring(2, 14)
+              .toUpperCase(),
+          },
+          agentId: deviceConfig.agentId,
+          deviceDetails: { ...deviceConfig.deviceDetails },
+        }));
+      }
+      if (api.type === "validate") {
+        setParameters((prev) => ({
+          ...prev,
+          refId: deviceConfig.refId,
+          agentId: deviceConfig.agentId,
+        }));
+      }
     }
 
     setAgentType(newAgentType);
+  };
+
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (path: string) => {
+    setExpandedPaths((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(path)) newSet.delete(path);
+      else newSet.add(path);
+      return newSet;
+    });
   };
 
   // Fixed renderParameter function
@@ -292,37 +288,48 @@ export function ApiSandbox_1({ api }: ApiSandboxProps) {
     path: string[] = []
   ): JSX.Element => {
     const fullPath = [...path, param.name];
+    const pathKey = fullPath.join(".");
     const currentValue = getNestedValue(fullPath);
 
     if (param.type === "object") {
       const nestedValue = currentValue || {};
-
+      const isExpanded = expandedPaths.has(pathKey);
       return (
         <div key={fullPath.join(".")} className="space-y-4 border-l pl-4">
-          <Label className="font-semibold">{param.name}</Label>
-          {Object.entries(nestedValue).map(([childKey, childValue]) =>
-            renderParameter(
-              {
-                name: childKey,
-                type:
-                  typeof childValue === "object" && childValue !== null
-                    ? "object"
-                    : typeof childValue === "string"
-                    ? "string"
-                    : typeof childValue === "number"
-                    ? "number"
-                    : typeof childValue === "boolean"
-                    ? "boolean"
-                    : "string",
-                required: true,
-                description: `${childKey} (nested under ${param.name})`,
-                defaultValue: childValue,
-                editable: true,
-                in: param.in,
-              },
-              childValue,
-              fullPath
-            )
+          <Label
+            className="font-semibold flex gap-5 cursor-pointer"
+            onClick={() => toggleExpand(pathKey)}
+          >
+            {isExpanded ? <FaMinus /> : <FaPlus />}
+            {param.name}
+          </Label>
+          {isExpanded && (
+            <div>
+              {Object.entries(nestedValue).map(([childKey, childValue]) =>
+                renderParameter(
+                  {
+                    name: childKey,
+                    type:
+                      typeof childValue === "object" && childValue !== null
+                        ? "object"
+                        : typeof childValue === "string"
+                        ? "string"
+                        : typeof childValue === "number"
+                        ? "number"
+                        : typeof childValue === "boolean"
+                        ? "boolean"
+                        : "string",
+                    required: true,
+                    description: `${childKey} (nested under ${param.name})`,
+                    defaultValue: childValue,
+                    editable: true,
+                    in: param.in,
+                  },
+                  childValue,
+                  fullPath
+                )
+              )}
+            </div>
           )}
         </div>
       );
@@ -330,13 +337,16 @@ export function ApiSandbox_1({ api }: ApiSandboxProps) {
 
     return (
       <div key={fullPath.join(".")} className="space-y-2">
-        <Label>
-          {param.name}{" "}
-          {param.required && <span className="text-destructive">*</span>}
-          <Badge variant="outline" className="text-xs ml-2">
-            {param.type}
-          </Badge>
-        </Label>
+        <div className="flex gap-5 items-center">
+          <Label>
+            {param.name}{" "}
+            {param.required && <span className="text-destructive">*</span>}
+            <Badge variant="outline" className="text-xs ml-2">
+              {param.type}
+            </Badge>
+          </Label>
+          <p className="text-xs text-muted-foreground">{param.description}</p>
+        </div>
         <Input
           type={param.type === "number" ? "number" : "text"}
           value={currentValue ?? ""}
@@ -348,7 +358,6 @@ export function ApiSandbox_1({ api }: ApiSandboxProps) {
           placeholder={param.description}
           disabled={false} // Make all fields editable
         />
-        <p className="text-xs text-muted-foreground">{param.description}</p>
       </div>
     );
   };
