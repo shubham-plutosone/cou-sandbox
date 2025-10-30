@@ -1,4 +1,5 @@
 import { ApiSandboxApp } from "@/components/ApiSandboxApp";
+import { Layout } from "@/components/Layout";
 import axios from "axios";
 import { useLayoutEffect, useState } from "react";
 
@@ -61,7 +62,7 @@ const Index = () => {
       <div className="text-gray-500">Loading...</div>
     </div>
   ) : (
-    <ApiSandboxApp />
+    <Layout />
   );
 };
 
